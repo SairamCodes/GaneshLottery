@@ -8,12 +8,8 @@ from dotenv import load_dotenv
 def seed_admin():
     load_dotenv(dotenv_path=".env")
     
-    username = os.getenv("ADMIN_USERNAME")
-    password = os.getenv("ADMIN_PASSWORD")
-    
-    if not username or not password:
-        print("Error: ADMIN_USERNAME and ADMIN_PASSWORD must be set in .env")
-        return
+    username = "admin"
+    password = "ManikantaYouth"
 
     # Ensure tables exist just in case
     Base.metadata.create_all(bind=engine)

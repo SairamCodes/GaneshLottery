@@ -38,8 +38,8 @@ async def lifespan(app: FastAPI):
         from app.auth.security import get_password_hash
         
         db = SessionLocal()
-        admin_username = os.getenv("ADMIN_USERNAME", "admin")
-        admin_password = os.getenv("ADMIN_PASSWORD", "ManikantaYouth")
+        admin_username = "admin"
+        admin_password = "ManikantaYouth"
         
         admin_user = db.query(Admin).filter(Admin.username == admin_username).first()
         if admin_user:
