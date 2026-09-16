@@ -5,7 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path="../.env")
 
-DATABASE_URL = os.getenv("DATABASE_URL_LOCAL") or os.getenv("DATABASE_URL")
+if os.getenv("RENDER"):
+    DATABASE_URL = os.getenv("DATABASE_URL")
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL_LOCAL") or os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
