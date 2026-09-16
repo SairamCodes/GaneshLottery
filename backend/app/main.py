@@ -60,10 +60,14 @@ app = FastAPI(title="Ganapathi Lottery API", lifespan=lifespan)
 # Allow CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")], 
+    allow_origins=[
+        "http://localhost:5173",
+        "https://ganeshlottery1.netlify.app",
+        os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
 app.include_router(public.router, prefix="/api", tags=["public"])
