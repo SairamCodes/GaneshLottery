@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <title>Ganapathi Lottery Ticket</title>
+    <style>
+        @font-face {
+            font-family: 'Noto Sans Telugu';
+            src: url('NotoSansTelugu-Regular.ttf');
+        }
+        @page {
+            size: A5 landscape;
+            margin: 0;
+        }
+        body {
+            font-family: 'Noto Sans Telugu', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff8e7; /* Cream color */
+            color: #333;
+        }
+        .ticket {
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            border: 10px solid #800000; /* Maroon */
+            position: relative;
+            page-break-after: always;
+        }
+        .header {
+            text-align: center;
+            color: #800000;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        .header h2 {
+            margin: 5px 0;
+            font-size: 18px;
+            color: #ff6600;
+        }
+        .content {
+            display: flex;
+            justify-content: space-between;
+        }
+        .details {
+            width: 60%;
+        }
+        .details p {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+        .details .prizes {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #ffe6e6;
+            border-radius: 5px;
+        }
+        .details .prizes h3 {
+            margin: 0 0 5px 0;
+            color: #800000;
+        }
+        .ticket-info {
+            width: 35%;
+            text-align: right;
+            border-left: 2px dashed #800000;
+            padding-left: 20px;
+        }
+        .ticket-info h1 {
+            color: #800000;
+            font-size: 28px;
+            margin: 10px 0;
+        }
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+            color: #800000;
+        }
+    </style>
+</head>
+<body>
+    {% for ticket in tickets %}
+    <div class="ticket">
+        <div class="header">
+            <h2>వినాయక నవ రాత్రులు శుభాకాంక్షలు</h2>
+            <h1>గణపతి లాటరీ - గుడిపాడు</h1>
+            <p>నిర్వాహకులు: మణికంఠ యూత్, గుడిపాడు</p>
+        </div>
+        <div class="content">
+            <div class="details">
+                <p><strong>పేరు (Name):</strong> {{ ticket.name }}</p>
+                <p><strong>గ్రామం (Village):</strong> {{ ticket.village }}</p>
+                
+                <div class="prizes">
+                    <h3>బహుమతులు (Prizes)</h3>
+                    <p><strong>1st Prize:</strong> Hero Pleasure X</p>
+                    <p><strong>2nd Prize:</strong> Croma Washing Machine</p>
+                </div>
+            </div>
+            <div class="ticket-info">
+                <p>టికెట్ ధర (Price)</p>
+                <h2>₹ 500/-</h2>
+                <p>టికెట్ నంబర్ (Ticket No.)</p>
+                <h1>#{{ "%06d" | format(ticket.token_number) }}</h1>
+                <p style="font-size: 12px; margin-top: 20px;">Order ID: {{ ticket.order_id }}</p>
+            </div>
+        </div>
+        <div class="footer">
+            <span>డ్రా తేదీ (Draw Date): 22 September 2026</span>
+            <span>జారీ చేసిన తేదీ: {{ ticket.date }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html>
