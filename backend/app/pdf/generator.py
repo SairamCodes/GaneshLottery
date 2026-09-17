@@ -33,17 +33,11 @@ def generate_ticket_pdf(tickets_data, output_path: str):
     template = env.get_template(template_file)
     html_out = template.render(tickets=tickets_data)
     
-    # Generate PDF using xhtml2pdf
-    from xhtml2pdf import pisa
+    # Generate PDF using weasyprint for proper Indic text support
+    from weasyprint import HTML
     
-    with open(output_path, "wb") as pdf_file:
-        pisa_status = pisa.CreatePDF(
-            html_out, 
-            dest=pdf_file,
-            link_callback=lambda uri, rel: os.path.join(template_dir, uri)
-        )
-        
-    if pisa_status.err:
-        raise Exception(f"PDF generation failed: {pisa_status.err}")
+    base_url = f"file://{os.path.abspath(template_dir)}/"
+    
+    HTML(string=html_out, base_url=base_url).write_pdf(output_path)
         
     return output_path

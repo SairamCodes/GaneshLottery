@@ -73,12 +73,12 @@ export default function AdminDashboard() {
   const handleVerify = async (orderId: string) => {
     // Validate tokens
     if (tokens.some(t => t.trim() === '')) {
-      alert("Please enter all token numbers.");
+      alert("Token number is required.");
       return;
     }
     const tokenNumbers = tokens.map(t => parseInt(t, 10));
     if (tokenNumbers.some(isNaN)) {
-      alert("All tokens must be valid numbers.");
+      alert("Token number is required.");
       return;
     }
     const uniqueTokens = new Set(tokenNumbers);
@@ -362,6 +362,68 @@ export default function AdminDashboard() {
                       >
                         REJECT PAYMENT
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedOrder.payment_status === 'PAYMENT_VERIFIED' && (
+                  <div className="mt-8 space-y-4">
+                    <div className="bg-green-50 text-green-800 p-4 rounded-lg border border-green-200">
+                      <p className="font-bold mb-1">Payment Verified</p>
+                      <p className="text-sm">Verified on: {selectedOrder.verified_at ? format(new Date(selectedOrder.verified_at), 'MMM dd, yyyy HH:mm') : 'N/A'}</p>
+                    </div>
+                    
+                    <a 
+                      href={`${api.defaults.baseURL}/orders/${selectedOrder.order_id}/tickets/download?transaction_id=${selectedOrder.transaction_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 block text-center"
+                    >
+                      VIEW TICKET
+                    </a>
+
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm("Are you sure you want to clear this verification?\nThe payment will return to pending verification and the assigned lottery token(s) will be released.")) {
+                          try {
+                            await api.post(`/admin/orders/${selectedOrder.order_id}/clear-verification`);
+                            alert("Verification cleared successfully.");
+                            setSelectedOrder(null);
+                            fetchOrders();
+                            fetchStats();
+                          } catch (err: any) {
+                            alert(err.response?.data?.detail || "Failed to clear verification");
+                          }
+                        }
+                      }}
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"
+                    >
+                      CLEAR VERIFICATION
+                    </button>
+
+                    <div className="border border-red-200 p-4 rounded-lg bg-red-50">
+                      <input 
+                        type="text" 
+                        placeholder="Rejection Reason (required)" 
+                        className="w-full px-3 py-2 border border-red-300 rounded mb-2 text-sm outline-none focus:ring-1 focus:ring-red-500"
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                      />
+                      <button 
+                        onClick={() => handleReject(selectedOrder.order_id)}
+                        className="w-full bg-white border border-red-600 text-red-600 hover:bg-red-50 font-bold py-2 rounded-lg"
+                      >
+                        REJECT PAYMENT
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedOrder.payment_status === 'PAYMENT_REJECTED' && (
+                  <div className="mt-8">
+                    <div className="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200">
+                      <p className="font-bold mb-1">Payment Rejected</p>
+                      <p className="text-sm">Reason: {selectedOrder.rejection_reason || 'No reason provided'}</p>
                     </div>
                   </div>
                 )}

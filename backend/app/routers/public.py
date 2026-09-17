@@ -62,8 +62,8 @@ def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
         return new_order
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating order: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error creating order: {repr(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Backend Error: {repr(e)}")
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(order_id: str, db: Session = Depends(get_db)):
@@ -89,21 +89,21 @@ def upload_screenshot(order_id: str, file: UploadFile = File(...), db: Session =
 
     # Secure filename
     filename = f"{uuid.uuid4()}{ext}"
-    storage_path = os.getenv("FILE_STORAGE_PATH", "./backend_storage")
-    screenshot_dir = os.path.join(storage_path, "screenshots")
-    os.makedirs(screenshot_dir, exist_ok=True)
-    file_path = os.path.join(screenshot_dir, filename)
+    storage_key = f"screenshots/{filename}"
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    from app.storage.provider import storage_provider
+    try:
+        storage_provider.upload_file(file.file, storage_key, file.content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
 
     # Save to db
     screenshot = db.query(PaymentScreenshot).filter(PaymentScreenshot.order_id == order.id).first()
     if screenshot:
-        screenshot.file_path = file_path
+        screenshot.file_path = storage_key
         screenshot.uploaded_at = datetime.utcnow()
     else:
-        screenshot = PaymentScreenshot(order_id=order.id, file_path=file_path)
+        screenshot = PaymentScreenshot(order_id=order.id, file_path=storage_key)
         db.add(screenshot)
     
     db.commit()
@@ -152,11 +152,30 @@ def get_active_qr(db: Session = Depends(get_db)):
     if not qr:
         return {"url": None}
     
-    # Just return filename for frontend to construct URL
-    filename = os.path.basename(qr.file_path)
-    return {"url": f"/static/qrcodes/{filename}"}
+    return {"url": "/api/payment-qr/image"}
 
-from fastapi.responses import FileResponse
+from fastapi import Response
+
+@router.get("/payment-qr/image")
+def get_qr_image(db: Session = Depends(get_db)):
+    qr = db.query(PaymentQRCode).filter(PaymentQRCode.is_active == True).first()
+    if not qr:
+        raise HTTPException(status_code=404, detail="QR code not found")
+        
+    from app.storage.provider import storage_provider
+    content, content_type = storage_provider.get_file(qr.file_path)
+    if not content:
+        raise HTTPException(status_code=404, detail="QR code file not found in storage")
+        
+    return Response(
+        content=content, 
+        media_type=content_type,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @router.get("/orders/{order_id}/tickets/download")
 def download_tickets(
@@ -184,4 +203,13 @@ def download_tickets(
     if not order.tickets or not order.tickets[0].pdf_path:
         raise HTTPException(status_code=404, detail="PDF not found")
         
-    return FileResponse(order.tickets[0].pdf_path, filename=f"Ganapathi_Lottery_{order.transaction_id or order_id}.pdf")
+    from app.storage.provider import storage_provider
+    content, content_type = storage_provider.get_file(order.tickets[0].pdf_path)
+    if not content:
+        raise HTTPException(status_code=404, detail="PDF not found in storage")
+        
+    return Response(
+        content=content, 
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=Ganapathi_Lottery_{order.transaction_id or order_id}.pdf"}
+    )

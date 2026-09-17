@@ -78,3 +78,17 @@ class Settings(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, nullable=False)
     value = Column(String, nullable=False)
+
+class AuditLog(Base):
+    __tablename__ = 'audit_logs'
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(String, index=True, nullable=False)
+    transaction_id = Column(String, nullable=True)
+    action = Column(String, nullable=False)
+    previous_status = Column(String, nullable=True)
+    new_status = Column(String, nullable=False)
+    admin_id = Column(Integer, ForeignKey('admins.id'), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    previous_tokens = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
