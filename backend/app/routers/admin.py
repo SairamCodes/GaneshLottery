@@ -98,7 +98,13 @@ def get_order_screenshot(
     order = db.query(Order).filter(Order.order_id == order_id).first()
     if not order or not order.screenshot:
         raise HTTPException(status_code=404, detail="Screenshot not found")
-    return FileResponse(order.screenshot.file_path)
+    
+    from app.storage.provider import storage_provider
+    from fastapi import Response
+    content, content_type = storage_provider.get_file(order.screenshot.file_path)
+    if not content:
+        raise HTTPException(status_code=404, detail="Screenshot not found in storage")
+    return Response(content=content, media_type=content_type)
 
 from app.schemas import VerifyPaymentRequest
 
@@ -161,17 +167,24 @@ def verify_payment(
                 "date": order.verified_at.strftime("%Y-%m-%d %H:%M:%S")
             })
             
-        storage_path = os.getenv("FILE_STORAGE_PATH", "./backend_storage")
-        pdf_dir = os.path.join(storage_path, "tickets")
-        os.makedirs(pdf_dir, exist_ok=True)
         pdf_filename = f"{order.transaction_id or order.order_id}.pdf"
-        pdf_path = os.path.join(pdf_dir, pdf_filename)
+        storage_key = f"tickets/{pdf_filename}"
         
-        generate_ticket_pdf(tickets_data, pdf_path)
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            generate_ticket_pdf(tickets_data, tmp.name)
+            tmp_path = tmp.name
+            
+        with open(tmp_path, "rb") as f:
+            from app.storage.provider import storage_provider
+            storage_provider.upload_file(f, storage_key, "application/pdf")
+            
+        os.remove(tmp_path)
         
         # Update tickets with pdf_path
         for t in tickets:
-            t.pdf_path = pdf_path
+            t.pdf_path = storage_key
             
         db.commit()
         return {"detail": "Payment verified and tickets generated"}
@@ -212,19 +225,19 @@ def upload_payment_qr(
         raise HTTPException(status_code=400, detail="Invalid file type")
 
     filename = f"qr_{uuid.uuid4()}{ext}"
-    storage_path = os.getenv("FILE_STORAGE_PATH", "./backend_storage")
-    qr_dir = os.path.join(storage_path, "qrcodes")
-    os.makedirs(qr_dir, exist_ok=True)
-    file_path = os.path.join(qr_dir, filename)
+    storage_key = f"qrcodes/{filename}"
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    from app.storage.provider import storage_provider
+    try:
+        storage_provider.upload_file(file.file, storage_key, file.content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Storage error: {str(e)}")
 
     # Deactivate old QRs
     db.query(PaymentQRCode).update({PaymentQRCode.is_active: False})
     
     new_qr = PaymentQRCode(
-        file_path=file_path,
+        file_path=storage_key,
         is_active=True,
         uploaded_by=current_admin.id
     )

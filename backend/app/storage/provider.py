@@ -60,7 +60,7 @@ class StorageProvider:
                 content_type = response.get('ContentType', 'application/octet-stream')
                 return content, content_type
             except ClientError as e:
-                if e.response['Error']['Code'] == 'NoSuchKey':
+                if e.response['Error']['Code'] in ['NoSuchKey', '404', 'NotFound']:
                     return None, None
                 raise Exception(f"Failed to fetch from S3: {e}")
         else:
