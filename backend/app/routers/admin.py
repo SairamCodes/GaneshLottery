@@ -274,3 +274,22 @@ def export_verified_sales(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=ganapathi_verified_sales.csv"}
     )
+
+@router.get('/system/pdf-status')
+def get_pdf_status(current_admin: Admin = Depends(get_current_admin)):
+    status = {
+        'pdf_engine': 'weasyprint',
+        'weasyprint_installed': False,
+        'weasyprint_version': None,
+        'xhtml2pdf_reference_present': False,
+        'deployment_version': 'v1.1.0-weasyprint'
+    }
+    
+    try:
+        import weasyprint
+        status['weasyprint_installed'] = True
+        status['weasyprint_version'] = getattr(weasyprint, '__version__', 'unknown')
+    except ImportError:
+        pass
+        
+    return status
