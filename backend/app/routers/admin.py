@@ -293,3 +293,22 @@ def get_pdf_status(current_admin: Admin = Depends(get_current_admin)):
         pass
         
     return status
+
+@router.get('/system/s3-test')
+def test_s3():
+    from app.storage.provider import storage_provider
+    import traceback
+    try:
+        if not storage_provider.use_s3:
+            return {'status': 'local'}
+        
+        # Test put
+        storage_provider.s3.put_object(Bucket=storage_provider.bucket, Key='test-s3.txt', Body=b'hello')
+        
+        # Test get
+        res = storage_provider.s3.get_object(Bucket=storage_provider.bucket, Key='test-s3.txt')
+        body = res['Body'].read()
+        
+        return {'status': 'ok', 'body': body.decode('utf-8')}
+    except Exception as e:
+        return {'status': 'error', 'error': str(e), 'trace': traceback.format_exc()}
